@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bodega Miramonte - Inventario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+        body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
+    </style>
+</head>
+<body class="pb-20">
+
+    <!-- LOGIN / SELECCIÓN DE USUARIO -->
+    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-6">
+        <img src="logo.png" alt="Logo" class="w-32 mb-4 drop-shadow-lg">
+        <h1 class="text-2xl font-bold text-gray-800">BODEGA MIRAMONTE</h1>
+        <p class="text-gray-500 mb-8 font-medium">Seleccione su usuario</p>
+        
+        <div class="grid grid-cols-1 gap-4 w-full max-w-xs">
+            <button onclick="login('Sergio')" class="glass-morphism p-4 text-xl font-semibold hover:bg-blue-50 transition-all border border-gray-100">Sergio</button>
+            <button onclick="login('Raul')" class="glass-morphism p-4 text-xl font-semibold hover:bg-blue-50 transition-all border border-gray-100">Raul</button>
+            <button onclick="login('Romeo')" class="glass-morphism p-4 text-xl font-semibold hover:bg-blue-50 transition-all border border-gray-100">Romeo</button>
+        </div>
+    </div>
+
+    <!-- APP PRINCIPAL (Oculta al inicio) -->
+    <div id="main-app" class="hidden">
+        <!-- Header -->
+        <header class="bg-white p-4 sticky top-0 z-10 shadow-sm flex flex-col items-center">
+            <img src="logo.png" alt="Logo" class="w-12 mb-1">
+            <h2 class="text-sm font-bold text-blue-600">BODEGA MIRAMONTE</h2>
+            <p id="user-display" class="text-xs text-gray-400 uppercase mt-1"></p>
+        </header>
+
+        <!-- BUSCADOR -->
+        <div id="view-inventory" class="p-4">
+            <div class="relative mb-6">
+                <input type="text" id="search-input" placeholder="Escribe el código (ej: EQBL02935P)..." 
+                    class="w-full p-4 rounded-2xl border-none bg-white shadow-md focus:ring-2 focus:ring-blue-400 outline-none">
+                <button onclick="searchProduct()" class="absolute right-3 top-3 bg-blue-500 text-white p-2 rounded-xl">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <!-- CARD DE RESULTADO -->
+            <div id="product-result" class="hidden glass-morphism p-6 animate-fade-in">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 id="res-codigo" class="text-xl font-bold text-blue-700"></h3>
+                    <span id="res-ubicacion" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold"></span>
+                </div>
+                <p id="res-descripcion" class="text-gray-600 text-sm mb-4 leading-tight"></p>
+                
+                <div class="grid grid-cols-2 gap-4 border-t pt-4">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Stock Sistema</p>
+                        <p id="res-stock-sis" class="font-bold text-lg"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Stock Bodega</p>
+                        <p id="res-stock-bod" class="font-bold text-lg"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Diferencia</p>
+                        <p id="res-dif" class="font-bold text-lg"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Lote</p>
+                        <p id="res-lote" class="font-bold text-lg text-green-600"></p>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-yellow-50 rounded-lg">
+                    <p class="text-xs text-yellow-700 font-bold uppercase">Comentario:</p>
+                    <p id="res-comentario" class="text-sm italic text-yellow-800"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORMULARIO MOVIMIENTOS -->
+        <div id="view-movements" class="hidden p-4">
+            <h3 class="text-xl font-bold mb-4">Registrar Movimiento</h3>
+            <form id="movement-form" class="space-y-4">
+                <input type="text" id="mov-codigo" placeholder="Código de Producto" class="w-full p-4 rounded-xl border shadow-sm" required>
+                <input type="text" id="mov-desc" placeholder="Descripción" class="w-full p-4 rounded-xl border shadow-sm">
+                
+                <select id="mov-tipo" class="w-full p-4 rounded-xl border shadow-sm bg-white">
+                    <option value="ENTRADA">ENTRADA (+)</option>
+                    <option value="SALIDA">SALIDA (-)</option>
+                    <option value="TRASLADO">TRASLADO (Reubicación)</option>
+                </select>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="mov-cant" placeholder="Cantidad" class="w-full p-4 rounded-xl border shadow-sm" required>
+                    <input type="text" id="mov-lote" placeholder="Lote" class="w-full p-4 rounded-xl border shadow-sm">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="mov-ub-ant" placeholder="Ubic. Anterior" class="w-full p-4 rounded-xl border shadow-sm">
+                    <input type="text" id="mov-ub-nue" placeholder="Ubic. Nueva" class="w-full p-4 rounded-xl border shadow-sm">
+                </div>
+
+                <textarea id="mov-com" placeholder="Comentario" class="w-full p-4 rounded-xl border shadow-sm"></textarea>
+                
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700">
+                    GUARDAR MOVIMIENTO
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Navegación Inferior (Estilo App) -->
+    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2 pb-6">
+        <button onclick="switchTab('inventory')" id="tab-inv" class="flex flex-col items-center p-2 text-blue-600 tab-active">
+            <i class="fas fa-boxes text-xl"></i>
+            <span class="text-[10px] mt-1">Inventario</span>
+        </button>
+        <button onclick="switchTab('movements')" id="tab-mov" class="flex flex-col items-center p-2 text-gray-400">
+            <i class="fas fa-exchange-alt text-xl"></i>
+            <span class="text-[10px] mt-1">Movimientos</span>
+        </button>
+        <button onclick="logout()" class="flex flex-col items-center p-2 text-gray-400">
+            <i class="fas fa-sign-out-alt text-xl"></i>
+            <span class="text-[10px] mt-1">Salir</span>
+        </button>
+    </nav>
+
+    <script>
+        // DATOS DE EJEMPLO (Se pueden expandir o cargar de un JSON/Base de datos)
+        const db_productos = [
+            {
+                codigo: "EQBL02935P",
+                descripcion: "ROLLO TTG COLOR BL 1 1/2 x 0 13/16 FILA 2 CORE 3",
+                stock_sis: 35,
+                stock_bod: 35,
+                dif: 0,
+                ub: "A-1",
+                lote: "12345",
+                com: "EN REVISION"
+            }
+        ];
+
+        let currentUser = "";
+        let movimientos = JSON.parse(localStorage.getItem('movimientos_bodega')) || [];
+
+        function login(user) {
+            currentUser = user;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+            document.getElementById('user-display').innerText = "Operador: " + user;
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        function switchTab(tab) {
+            const inv = document.getElementById('view-inventory');
+            const mov = document.getElementById('view-movements');
+            const tInv = document.getElementById('tab-inv');
+            const tMov = document.getElementById('tab-mov');
+
+            if(tab === 'inventory') {
+                inv.classList.remove('hidden');
+                mov.classList.add('hidden');
+                tInv.classList.add('tab-active');
+                tMov.classList.remove('tab-active');
+            } else {
+                inv.classList.add('hidden');
+                mov.classList.remove('hidden');
+                tMov.classList.add('tab-active');
+                tInv.classList.remove('tab-active');
+            }
+        }
+
+        function searchProduct() {
+            const code = document.getElementById('search-input').value.toUpperCase();
+            const product = db_productos.find(p => p.codigo === code);
+            const resCard = document.getElementById('product-result');
+
+            if(product) {
+                resCard.classList.remove('hidden');
+                document.getElementById('res-codigo').innerText = product.codigo;
+                document.getElementById('res-descripcion').innerText = product.descripcion;
+                document.getElementById('res-stock-sis').innerText = product.stock_sis;
+                document.getElementById('res-stock-bod').innerText = product.stock_bod;
+                document.getElementById('res-dif').innerText = product.dif;
+                document.getElementById('res-ubicacion').innerText = product.ub;
+                document.getElementById('res-lote').innerText = product.lote;
+                document.getElementById('res-comentario').innerText = product.com;
+            } else {
+                alert("Producto no encontrado");
+                resCard.classList.add('hidden');
+            }
+        }
+
+        // GUARDAR MOVIMIENTO
+        document.getElementById('movement-form').onsubmit = function(e) {
+            e.preventDefault();
+            
+            const nuevoMov = {
+                fecha: new Date().toLocaleString(),
+                usuario: currentUser,
+                codigo: document.getElementById('mov-codigo').value,
+                descripcion: document.getElementById('mov-desc').value,
+                tipo: document.getElementById('mov-tipo').value,
+                cantidad: document.getElementById('mov-cant').value,
+                ub_ant: document.getElementById('mov-ub-ant').value,
+                ub_nue: document.getElementById('mov-ub-nue').value,
+                lote: document.getElementById('mov-lote').value,
+                comentario: document.getElementById('mov-com').value
+            };
+
+            movimientos.push(nuevoMov);
+            localStorage.setItem('movimientos_bodega', JSON.stringify(movimientos));
+            
+            alert("? Movimiento Guardado con éxito");
+            this.reset();
+            switchTab('inventory');
+        };
+    </script>
+</body>
+</html>
