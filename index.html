@@ -3,265 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BODEGA MIRAMONTE - Admin</title>
+    <title>BODEGA MIRAMONTE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
-        .tab-active { color: #2563eb; border-top: 3px solid #2563eb; }
-        .card-descuadre { border-left: 5px solid #ef4444; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
+        .glass { background: white; border-radius: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body class="pb-24">
 
-    <!-- PANTALLA CARGA -->
-    <div id="loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p class="mt-4 text-gray-500 font-medium">Sincronizando con Google Sheets...</p>
+    <!-- PANTALLA CARGA / DEBUGGER -->
+    <div id="loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-10 text-center">
+        <div id="spinner" class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <h2 class="text-xl font-bold mb-2">Sincronizando...</h2>
+        <p id="status-msg" class="text-gray-500 text-sm italic">Conectando con Google Sheets</p>
+        <div id="error-box" class="hidden mt-4 p-4 bg-red-50 text-red-600 rounded-lg text-xs break-all"></div>
     </div>
 
     <!-- LOGIN -->
-    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-        <img src="logo.png" alt="Logo" class="w-28 mb-4">
-        <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">BODEGA MIRAMONTE</h1>
-        <p class="text-slate-400 mb-8">Gestión de Inventario de Etiquetas</p>
-        <div class="grid grid-cols-1 gap-4 w-full max-w-xs">
-            <button onclick="login('Sergio')" class="glass p-5 rounded-3xl font-bold text-slate-700 shadow-sm active:scale-95 transition-all">Sergio</button>
-            <button onclick="login('Raul')" class="glass p-5 rounded-3xl font-bold text-slate-700 shadow-sm active:scale-95 transition-all">Raul</button>
-            <button onclick="login('Romeo')" class="glass p-5 rounded-3xl font-bold text-slate-700 shadow-sm active:scale-95 transition-all">Romeo</button>
+    <div id="login-screen" class="hidden min-h-screen flex flex-col items-center justify-center p-6">
+        <img src="logo.png" alt="Logo" class="w-32 mb-2">
+        <h1 class="text-2xl font-black text-gray-800 uppercase tracking-tighter">BODEGA MIRAMONTE</h1>
+        <p class="mb-10 text-gray-400 font-medium">Seleccione su perfil</p>
+        <div class="space-y-4 w-full max-w-xs">
+            <button onclick="login('Sergio')" class="w-full glass p-5 font-bold text-lg active:bg-gray-100">Sergio</button>
+            <button onclick="login('Raul')" class="w-full glass p-5 font-bold text-lg active:bg-gray-100">Raul</button>
+            <button onclick="login('Romeo')" class="w-full glass p-5 font-bold text-lg active:bg-gray-100">Romeo</button>
         </div>
     </div>
 
-    <!-- APP PRINCIPAL -->
+    <!-- APP -->
     <div id="main-app" class="hidden">
-        <header class="p-6 bg-white flex items-center justify-between shadow-sm">
+        <header class="p-6 flex justify-between items-center bg-white shadow-sm">
             <div>
-                <p id="user-display" class="text-xs font-bold text-blue-600 uppercase"></p>
-                <h2 class="text-xl font-extrabold">Miramonte Hub</h2>
+                <img src="logo.png" class="w-10">
+                <h2 class="font-black text-xs text-blue-600">BODEGA MIRAMONTE</h2>
             </div>
-            <img src="logo.png" class="w-10">
+            <div id="user-display" class="bg-blue-50 px-4 py-1 rounded-full text-blue-700 font-bold text-xs uppercase"></div>
         </header>
 
-        <!-- CONTENIDO DINÁMICO -->
-        <main id="content" class="p-4">
+        <!-- BUSCADOR -->
+        <main id="view-inventory" class="p-4">
+            <input type="text" id="search-input" oninput="searchInDB()" placeholder="Ingresar código..." 
+                class="w-full p-5 rounded-3xl shadow-lg border-none focus:ring-2 focus:ring-blue-500 outline-none text-lg font-bold">
             
-            <!-- VISTA INVENTARIO (BUSCAR) -->
-            <section id="view-inventory">
-                <div class="relative mb-6">
-                    <input type="text" id="search-input" oninput="autoSuggest()" placeholder="Buscar código..." 
-                        class="w-full p-4 rounded-2xl bg-white shadow-xl border-none focus:ring-2 focus:ring-blue-500 outline-none font-medium">
-                    <i class="fas fa-search absolute right-5 top-5 text-gray-400"></i>
-                </div>
-
-                <div id="product-result" class="hidden glass p-6 rounded-[2rem] shadow-xl animate-fade-in">
-                    <div class="flex justify-between mb-4">
-                        <span id="res-ubicacion" class="bg-blue-600 text-white px-4 py-1 rounded-full text-[10px] font-bold"></span>
-                        <span id="res-lote" class="text-gray-400 text-xs font-bold uppercase"></span>
+            <div id="res-card" class="hidden mt-6 glass p-6 animate-fade-in border-l-[8px] border-blue-500">
+                <h3 id="res-codigo" class="text-3xl font-black mb-1"></h3>
+                <p id="res-desc" class="text-gray-500 text-sm mb-6"></p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-2xl">
+                        <span class="text-[10px] font-bold text-gray-400 block">SISTEMA</span>
+                        <span id="res-sis" class="text-xl font-bold"></span>
                     </div>
-                    <h3 id="res-codigo" class="text-2xl font-extrabold text-slate-800 mb-1"></h3>
-                    <p id="res-descripcion" class="text-slate-500 text-sm mb-6 leading-relaxed"></p>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-slate-50 p-4 rounded-2xl">
-                            <p class="text-[10px] text-gray-400 font-bold uppercase">Sistema</p>
-                            <p id="res-stock-sis" class="text-xl font-black"></p>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded-2xl">
-                            <p class="text-[10px] text-gray-400 font-bold uppercase">Bodega</p>
-                            <p id="res-stock-bod" class="text-xl font-black"></p>
-                        </div>
-                    </div>
-                    <div id="res-dif-box" class="mt-3 p-4 rounded-2xl flex justify-between items-center">
-                        <p class="text-[10px] font-bold uppercase">Diferencia Actual</p>
-                        <p id="res-dif" class="text-xl font-black"></p>
+                    <div class="bg-gray-50 p-4 rounded-2xl">
+                        <span class="text-[10px] font-bold text-gray-400 block">BODEGA</span>
+                        <span id="res-bod" class="text-xl font-bold"></span>
                     </div>
                 </div>
-            </section>
-
-            <!-- VISTA DASHBOARD (DESCUADRADOS) -->
-            <section id="view-dashboard" class="hidden">
-                <h3 class="text-lg font-bold mb-4">Alertas de Descuadre</h3>
-                <div id="dashboard-list" class="space-y-3">
-                    <!-- Items descuadrados dinámicos -->
+                <div id="res-dif-box" class="mt-4 p-4 rounded-2xl flex justify-between items-center">
+                    <span class="font-bold">DIFERENCIA</span>
+                    <span id="res-dif" class="text-2xl font-black"></span>
                 </div>
-            </section>
-
-            <!-- VISTA MOVIMIENTOS -->
-            <section id="view-movements" class="hidden">
-                <div class="glass p-6 rounded-[2rem]">
-                    <h3 class="font-bold mb-4 text-slate-800 text-lg">Registrar Flujo</h3>
-                    <form id="movement-form" class="space-y-4">
-                        <input type="text" id="mov-codigo" onchange="fillFields(this.value)" placeholder="Código del producto" class="w-full p-4 rounded-xl border-none bg-slate-100 font-bold" required>
-                        <input type="text" id="mov-desc" placeholder="Descripción (Auto)" class="w-full p-4 rounded-xl border-none bg-slate-50 text-gray-400" readonly>
-                        <select id="mov-tipo" class="w-full p-4 rounded-xl border-none bg-blue-50 text-blue-700 font-bold appearance-none">
-                            <option value="ENTRADA">?? ENTRADA (+)</option>
-                            <option value="SALIDA">?? SALIDA (-)</option>
-                            <option value="TRASLADO">?? TRASLADO</option>
-                        </select>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="number" id="mov-cant" placeholder="Cantidad" class="p-4 rounded-xl bg-slate-100 border-none font-bold">
-                            <input type="text" id="mov-lote" placeholder="Lote" class="p-4 rounded-xl bg-slate-100 border-none font-bold">
-                        </div>
-                        <textarea id="mov-com" placeholder="Notas adicionales..." class="w-full p-4 rounded-xl bg-slate-100 border-none"></textarea>
-                        <button type="submit" class="w-full bg-slate-900 text-white font-bold py-5 rounded-2xl shadow-lg active:scale-95 transition-all">SINCRONIZAR AHORA</button>
-                    </form>
+                <div class="mt-4 text-xs font-bold text-gray-400 flex justify-between px-2">
+                    <span id="res-ub"></span>
+                    <span id="res-lote"></span>
                 </div>
-            </section>
-
+            </div>
         </main>
+
+        <!-- DASHBOARD (DESCUADRES) -->
+        <main id="view-dash" class="hidden p-4">
+            <h2 class="font-black text-xl mb-4 text-red-600">PRODUCTOS DESCUADRADOS</h2>
+            <div id="dash-list" class="space-y-3"></div>
+        </main>
+
+        <!-- MOVIMIENTOS -->
+        <main id="view-mov" class="hidden p-4">
+            <div class="glass p-6">
+                <h2 class="font-black mb-4">REGISTRAR MOVIMIENTO</h2>
+                <form id="mov-form" class="space-y-4">
+                    <input type="text" id="m-cod" onchange="autoFill(this.value)" placeholder="Código" class="w-full p-4 bg-gray-100 rounded-xl font-bold" required>
+                    <input type="text" id="m-des" placeholder="Descripción (Automático)" class="w-full p-4 bg-gray-50 text-gray-400 rounded-xl italic" readonly>
+                    <select id="m-tipo" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl">
+                        <option value="ENTRADA">?? ENTRADA (+)</option>
+                        <option value="SALIDA">?? SALIDA (-)</option>
+                        <option value="TRASLADO">?? TRASLADO</option>
+                    </select>
+                    <input type="number" id="m-cant" placeholder="Cantidad" class="w-full p-4 bg-gray-100 rounded-xl font-bold">
+                    <input type="text" id="m-lote" placeholder="Número de Lote" class="w-full p-4 bg-gray-100 rounded-xl font-bold">
+                    <button type="submit" class="w-full bg-black text-white p-5 rounded-2xl font-black">GUARDAR EN SHEETS</button>
+                </form>
+            </div>
+        </main>
+
+        <!-- NAV -->
+        <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around p-4 shadow-2xl">
+            <button onclick="showTab('inventory')" class="flex flex-col items-center text-blue-600"><i class="fas fa-search text-xl"></i><span class="text-[10px] font-bold">BUSCAR</span></button>
+            <button onclick="showTab('dash')" class="flex flex-col items-center text-gray-400"><i class="fas fa-exclamation-triangle text-xl"></i><span class="text-[10px] font-bold">ALERTAS</span></button>
+            <button onclick="showTab('mov')" class="flex flex-col items-center text-gray-400"><i class="fas fa-plus-circle text-xl"></i><span class="text-[10px] font-bold">MOVER</span></button>
+        </nav>
     </div>
 
-    <!-- NAVBAR INFERIOR -->
-    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 glass border-t border-gray-100 flex justify-around p-3 z-40">
-        <button onclick="switchTab('inventory')" id="tab-inv" class="flex flex-col items-center p-2 tab-active transition-all">
-            <i class="fas fa-search-barcode text-xl"></i>
-            <span class="text-[9px] font-bold mt-1 uppercase">Buscar</span>
-        </button>
-        <button onclick="switchTab('dashboard')" id="tab-dash" class="flex flex-col items-center p-2 text-slate-400">
-            <i class="fas fa-chart-pie text-xl"></i>
-            <span class="text-[9px] font-bold mt-1 uppercase">Alertas</span>
-        </button>
-        <button onclick="switchTab('movements')" id="tab-mov" class="flex flex-col items-center p-2 text-slate-400">
-            <i class="fas fa-plus-circle text-xl"></i>
-            <span class="text-[9px] font-bold mt-1 uppercase">Mover</span>
-        </button>
-    </nav>
-
     <script>
-        const APP_URL = 'https://script.google.com/macros/s/AKfycbwAHjgn9gr0WpttXMb04hKV6E3A_-8LRkOf-KUfbfGSJttf5mmf09Q0JA_7MLeeXtPT/exec';
-        let DB = { eq: [], inv: [] };
-        let currentUser = "";
+        const URL_API = 'https://script.google.com/macros/s/AKfycbxrsMaMxCprVCz3mA3DxXOhVJbZUxuZUiZqHDA36FjkZy1pPVWeHMehELoP7oLocfY/exec'; // <--- PEGA AQUÍ LA URL
+        let DATA = { eq: [], inv: [] };
+        let USER = "";
 
-        // CARGAR DATOS DE GOOGLE SHEETS
-        async function loadData() {
-            document.getElementById('loader').style.display = 'flex';
+        // FUNCIÓN CARGA DE DATOS
+        async function sync() {
+            const errBox = document.getElementById('error-box');
             try {
-                const response = await fetch(`${APP_URL}?action=getData`);
-                const data = await response.json();
-                DB.eq = data.eq;
-                DB.inv = data.inv;
-                renderDashboard();
-                document.getElementById('loader').style.display = 'none';
-            } catch (error) {
-                console.error("Error cargando datos:", error);
-                alert("Error de conexión con la base de datos.");
+                const response = await fetch(URL_API);
+                if (!response.ok) throw new Error("HTTP Error " + response.status);
+                const json = await response.json();
+                
+                DATA.eq = json.eq;
+                DATA.inv = json.inv;
+
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            } catch (e) {
+                document.getElementById('spinner').classList.add('hidden');
+                errBox.classList.remove('hidden');
+                errBox.innerText = "ERROR DE CONEXIÓN: " + e.message + "\n\nCausas probables:\n1. URL incorrecta.\n2. No activaste 'Cualquier persona' en el Script.\n3. Internet inestable.";
             }
         }
 
-        function login(user) {
-            currentUser = user;
+        function login(u) {
+            USER = u;
+            document.getElementById('user-display').innerText = u;
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('bottom-nav').classList.remove('hidden');
-            document.getElementById('user-display').innerText = `Operario: ${user}`;
-            loadData();
+            renderDash();
         }
 
-        // AUTO-RELLENAR AL ESCRIBIR CÓDIGO
-        function fillFields(code) {
-            const product = DB.eq.find(r => r[0] === code.toUpperCase());
-            if(product) {
-                document.getElementById('mov-desc').value = product[1]; // Columna B de EQ
-            }
+        function showTab(tab) {
+            ['view-inventory', 'view-dash', 'view-mov'].forEach(v => document.getElementById(v).classList.add('hidden'));
+            document.getElementById('view-' + tab).classList.remove('hidden');
         }
 
-        // BÚSQUEDA
-        function autoSuggest() {
-            const query = document.getElementById('search-input').value.toUpperCase();
-            const invRow = DB.inv.find(r => r[0] === query); // Hoja inventario
-            const eqRow = DB.eq.find(r => r[0] === query);   // Hoja EQ
+        function searchInDB() {
+            const q = document.getElementById('search-input').value.toUpperCase();
+            const row = DATA.inv.find(r => r[0] == q);
+            const card = document.getElementById('res-card');
 
-            if(invRow) {
-                document.getElementById('product-result').classList.remove('hidden');
-                document.getElementById('res-codigo').innerText = invRow[0];
-                document.getElementById('res-descripcion').innerText = invRow[1];
-                document.getElementById('res-stock-sis').innerText = invRow[3];
-                document.getElementById('res-stock-bod').innerText = invRow[4];
-                document.getElementById('res-dif').innerText = invRow[5];
-                document.getElementById('res-ubicacion').innerText = invRow[6];
-                document.getElementById('res-lote').innerText = "LOTE: " + (invRow[7] || "N/A");
+            if(row) {
+                card.classList.remove('hidden');
+                document.getElementById('res-codigo').innerText = row[0];
+                document.getElementById('res-desc').innerText = row[1];
+                document.getElementById('res-sis').innerText = row[3];
+                document.getElementById('res-bod').innerText = row[4];
+                document.getElementById('res-dif').innerText = row[5];
+                document.getElementById('res-ub').innerText = "UBICACIÓN: " + row[6];
+                document.getElementById('res-lote').innerText = "LOTE: " + row[7];
                 
-                const difBox = document.getElementById('res-dif-box');
-                difBox.style.background = invRow[5] != 0 ? '#fee2e2' : '#f0fdf4';
-                difBox.style.color = invRow[5] != 0 ? '#ef4444' : '#22c55e';
+                const dbx = document.getElementById('res-dif-box');
+                dbx.style.background = row[5] == 0 ? '#f0fdf4' : '#fef2f2';
+                dbx.style.color = row[5] == 0 ? '#16a34a' : '#dc2626';
+            } else {
+                card.classList.add('hidden');
             }
         }
 
-        // DASHBOARD DE DESCUADRADOS
-        function renderDashboard() {
-            const list = document.getElementById('dashboard-list');
+        function renderDash() {
+            const list = document.getElementById('dash-list');
             list.innerHTML = "";
-            // Filtramos la hoja inventario donde columna F (index 5) != 0
-            const descuadrados = DB.inv.filter((r, index) => index > 0 && r[5] != 0);
+            const descuadrados = DATA.inv.filter((r, i) => i > 0 && r[5] != 0);
 
-            if(descuadrados.length === 0) {
-                list.innerHTML = "<p class='text-center text-green-500 font-bold p-10'>? Todo cuadrado</p>";
-                return;
-            }
-
-            descuadrados.forEach(item => {
-                const div = document.createElement('div');
-                div.className = "card-descuadre glass p-4 rounded-2xl shadow-sm flex justify-between items-center";
-                div.innerHTML = `
-                    <div>
-                        <p class="text-sm font-black text-slate-800">${item[0]}</p>
-                        <p class="text-[10px] text-gray-500 truncate w-40">${item[1]}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-red-500 font-bold">DIF: ${item[5]}</p>
-                        <p class="text-[9px] text-gray-400">UBIC: ${item[6]}</p>
+            descuadrados.forEach(r => {
+                list.innerHTML += `
+                    <div class="glass p-4 border-l-4 border-red-500 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm">${r[0]}</p>
+                            <p class="text-[10px] text-gray-400">${r[1].substring(0,30)}...</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black text-red-600">${r[5]}</p>
+                            <p class="text-[9px] font-bold">DIFERENCIA</p>
+                        </div>
                     </div>
                 `;
-                list.appendChild(div);
             });
         }
 
-        // CAMBIAR PESTAÑAS
-        function switchTab(tab) {
-            const tabs = ['view-inventory', 'view-dashboard', 'view-movements'];
-            tabs.forEach(t => document.getElementById(t).classList.add('hidden'));
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-            
-            // Estilo iconos
-            const icons = ['tab-inv', 'tab-dash', 'tab-mov'];
-            icons.forEach(i => document.getElementById(i).classList.remove('tab-active', 'text-slate-400'));
-            document.getElementById(`tab-${tab === 'inventory' ? 'inv' : tab === 'dashboard' ? 'dash' : 'mov'}`).classList.add('tab-active');
+        function autoFill(val) {
+            const p = DATA.eq.find(r => r[0] == val.toUpperCase());
+            if(p) document.getElementById('m-des').value = p[1];
         }
 
-        // GUARDAR EN GOOGLE SHEETS
-        document.getElementById('movement-form').onsubmit = async function(e) {
+        document.getElementById('mov-form').onsubmit = async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
-            btn.innerText = "PROCESANDO...";
+            btn.innerText = "ENVIANDO...";
             btn.disabled = true;
 
             const payload = {
-                usuario: currentUser,
-                codigo: document.getElementById('mov-codigo').value,
-                descripcion: document.getElementById('mov-desc').value,
-                tipo: document.getElementById('mov-tipo').value,
-                cantidad: document.getElementById('mov-cant').value,
-                lote: document.getElementById('mov-lote').value,
-                comentario: document.getElementById('mov-com').value
+                usuario: USER,
+                codigo: document.getElementById('m-cod').value,
+                descripcion: document.getElementById('m-des').value,
+                tipo: document.getElementById('m-tipo').value,
+                cantidad: document.getElementById('m-cant').value,
+                lote: document.getElementById('m-lote').value,
+                ub_ant: "", ub_nue: "", comentario: ""
             };
 
-            try {
-                await fetch(APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                alert("Sincronizado con Google Sheets correctamente");
-                e.target.reset();
-                loadData(); // Recargar datos para el dashboard
-            } catch (e) {
-                alert("Error al guardar");
-            } finally {
-                btn.innerText = "SINCRONIZAR AHORA";
-                btn.disabled = false;
-            }
-        };
+            await fetch(URL_API, { method: 'POST', body: JSON.stringify(payload) });
+            alert("¡Movimiento Guardado!");
+            location.reload();
+        }
+
+        window.onload = sync;
     </script>
 </body>
 </html>
