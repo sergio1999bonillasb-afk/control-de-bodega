@@ -3,228 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bodega Miramonte - Inventario</title>
+    <title>BODEGA MIRAMONTE - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .glass-morphism {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-        }
-        body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
-        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
+        .tab-active { color: #2563eb; border-top: 3px solid #2563eb; }
+        .card-descuadre { border-left: 5px solid #ef4444; }
     </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
 
-    <!-- LOGIN / SELECCIÓN DE USUARIO -->
-    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-6">
-        <img src="logo.png" alt="Logo" class="w-32 mb-4 drop-shadow-lg">
-        <h1 class="text-2xl font-bold text-gray-800">BODEGA MIRAMONTE</h1>
-        <p class="text-gray-500 mb-8 font-medium">Seleccione su usuario</p>
-        
+    <!-- PANTALLA CARGA -->
+    <div id="loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p class="mt-4 text-gray-500 font-medium">Sincronizando con Google Sheets...</p>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
+        <img src="logo.png" alt="Logo" class="w-28 mb-4">
+        <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">BODEGA MIRAMONTE</h1>
+        <p class="text-slate-400 mb-8">Gestión de Inventario de Etiquetas</p>
         <div class="grid grid-cols-1 gap-4 w-full max-w-xs">
-            <button onclick="login('Sergio')" class="glass-morphism p-4 text-xl font-semibold hover:bg-blue-50 transition-all border border-gray-100">Sergio</button>
-            <button onclick="login('Raul')" class="glass-morphism p-4 text-xl font-semibold hover:bg-blue-50 transition-all border border-gray-100">Raul</button>
-            <button onclick="login('Romeo')" class="glass-morphism p-4 text-xl font-semibold hover:bg-blue-50 transition-all border border-gray-100">Romeo</button>
+            <button onclick="login('Sergio')" class="glass p-5 rounded-3xl font-bold text-slate-700 shadow-sm active:scale-95 transition-all">Sergio</button>
+            <button onclick="login('Raul')" class="glass p-5 rounded-3xl font-bold text-slate-700 shadow-sm active:scale-95 transition-all">Raul</button>
+            <button onclick="login('Romeo')" class="glass p-5 rounded-3xl font-bold text-slate-700 shadow-sm active:scale-95 transition-all">Romeo</button>
         </div>
     </div>
 
-    <!-- APP PRINCIPAL (Oculta al inicio) -->
+    <!-- APP PRINCIPAL -->
     <div id="main-app" class="hidden">
-        <!-- Header -->
-        <header class="bg-white p-4 sticky top-0 z-10 shadow-sm flex flex-col items-center">
-            <img src="logo.png" alt="Logo" class="w-12 mb-1">
-            <h2 class="text-sm font-bold text-blue-600">BODEGA MIRAMONTE</h2>
-            <p id="user-display" class="text-xs text-gray-400 uppercase mt-1"></p>
+        <header class="p-6 bg-white flex items-center justify-between shadow-sm">
+            <div>
+                <p id="user-display" class="text-xs font-bold text-blue-600 uppercase"></p>
+                <h2 class="text-xl font-extrabold">Miramonte Hub</h2>
+            </div>
+            <img src="logo.png" class="w-10">
         </header>
 
-        <!-- BUSCADOR -->
-        <div id="view-inventory" class="p-4">
-            <div class="relative mb-6">
-                <input type="text" id="search-input" placeholder="Escribe el código (ej: EQBL02935P)..." 
-                    class="w-full p-4 rounded-2xl border-none bg-white shadow-md focus:ring-2 focus:ring-blue-400 outline-none">
-                <button onclick="searchProduct()" class="absolute right-3 top-3 bg-blue-500 text-white p-2 rounded-xl">
-                    <i class="fas fa-search"></i>
-                </button>
-            </div>
-
-            <!-- CARD DE RESULTADO -->
-            <div id="product-result" class="hidden glass-morphism p-6 animate-fade-in">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 id="res-codigo" class="text-xl font-bold text-blue-700"></h3>
-                    <span id="res-ubicacion" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold"></span>
+        <!-- CONTENIDO DINÁMICO -->
+        <main id="content" class="p-4">
+            
+            <!-- VISTA INVENTARIO (BUSCAR) -->
+            <section id="view-inventory">
+                <div class="relative mb-6">
+                    <input type="text" id="search-input" oninput="autoSuggest()" placeholder="Buscar código..." 
+                        class="w-full p-4 rounded-2xl bg-white shadow-xl border-none focus:ring-2 focus:ring-blue-500 outline-none font-medium">
+                    <i class="fas fa-search absolute right-5 top-5 text-gray-400"></i>
                 </div>
-                <p id="res-descripcion" class="text-gray-600 text-sm mb-4 leading-tight"></p>
-                
-                <div class="grid grid-cols-2 gap-4 border-t pt-4">
-                    <div>
-                        <p class="text-xs text-gray-400 uppercase">Stock Sistema</p>
-                        <p id="res-stock-sis" class="font-bold text-lg"></p>
+
+                <div id="product-result" class="hidden glass p-6 rounded-[2rem] shadow-xl animate-fade-in">
+                    <div class="flex justify-between mb-4">
+                        <span id="res-ubicacion" class="bg-blue-600 text-white px-4 py-1 rounded-full text-[10px] font-bold"></span>
+                        <span id="res-lote" class="text-gray-400 text-xs font-bold uppercase"></span>
                     </div>
-                    <div>
-                        <p class="text-xs text-gray-400 uppercase">Stock Bodega</p>
-                        <p id="res-stock-bod" class="font-bold text-lg"></p>
+                    <h3 id="res-codigo" class="text-2xl font-extrabold text-slate-800 mb-1"></h3>
+                    <p id="res-descripcion" class="text-slate-500 text-sm mb-6 leading-relaxed"></p>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">Sistema</p>
+                            <p id="res-stock-sis" class="text-xl font-black"></p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">Bodega</p>
+                            <p id="res-stock-bod" class="text-xl font-black"></p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-xs text-gray-400 uppercase">Diferencia</p>
-                        <p id="res-dif" class="font-bold text-lg"></p>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-400 uppercase">Lote</p>
-                        <p id="res-lote" class="font-bold text-lg text-green-600"></p>
+                    <div id="res-dif-box" class="mt-3 p-4 rounded-2xl flex justify-between items-center">
+                        <p class="text-[10px] font-bold uppercase">Diferencia Actual</p>
+                        <p id="res-dif" class="text-xl font-black"></p>
                     </div>
                 </div>
-                <div class="mt-4 p-3 bg-yellow-50 rounded-lg">
-                    <p class="text-xs text-yellow-700 font-bold uppercase">Comentario:</p>
-                    <p id="res-comentario" class="text-sm italic text-yellow-800"></p>
+            </section>
+
+            <!-- VISTA DASHBOARD (DESCUADRADOS) -->
+            <section id="view-dashboard" class="hidden">
+                <h3 class="text-lg font-bold mb-4">Alertas de Descuadre</h3>
+                <div id="dashboard-list" class="space-y-3">
+                    <!-- Items descuadrados dinámicos -->
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- FORMULARIO MOVIMIENTOS -->
-        <div id="view-movements" class="hidden p-4">
-            <h3 class="text-xl font-bold mb-4">Registrar Movimiento</h3>
-            <form id="movement-form" class="space-y-4">
-                <input type="text" id="mov-codigo" placeholder="Código de Producto" class="w-full p-4 rounded-xl border shadow-sm" required>
-                <input type="text" id="mov-desc" placeholder="Descripción" class="w-full p-4 rounded-xl border shadow-sm">
-                
-                <select id="mov-tipo" class="w-full p-4 rounded-xl border shadow-sm bg-white">
-                    <option value="ENTRADA">ENTRADA (+)</option>
-                    <option value="SALIDA">SALIDA (-)</option>
-                    <option value="TRASLADO">TRASLADO (Reubicación)</option>
-                </select>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="mov-cant" placeholder="Cantidad" class="w-full p-4 rounded-xl border shadow-sm" required>
-                    <input type="text" id="mov-lote" placeholder="Lote" class="w-full p-4 rounded-xl border shadow-sm">
+            <!-- VISTA MOVIMIENTOS -->
+            <section id="view-movements" class="hidden">
+                <div class="glass p-6 rounded-[2rem]">
+                    <h3 class="font-bold mb-4 text-slate-800 text-lg">Registrar Flujo</h3>
+                    <form id="movement-form" class="space-y-4">
+                        <input type="text" id="mov-codigo" onchange="fillFields(this.value)" placeholder="Código del producto" class="w-full p-4 rounded-xl border-none bg-slate-100 font-bold" required>
+                        <input type="text" id="mov-desc" placeholder="Descripción (Auto)" class="w-full p-4 rounded-xl border-none bg-slate-50 text-gray-400" readonly>
+                        <select id="mov-tipo" class="w-full p-4 rounded-xl border-none bg-blue-50 text-blue-700 font-bold appearance-none">
+                            <option value="ENTRADA">?? ENTRADA (+)</option>
+                            <option value="SALIDA">?? SALIDA (-)</option>
+                            <option value="TRASLADO">?? TRASLADO</option>
+                        </select>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="mov-cant" placeholder="Cantidad" class="p-4 rounded-xl bg-slate-100 border-none font-bold">
+                            <input type="text" id="mov-lote" placeholder="Lote" class="p-4 rounded-xl bg-slate-100 border-none font-bold">
+                        </div>
+                        <textarea id="mov-com" placeholder="Notas adicionales..." class="w-full p-4 rounded-xl bg-slate-100 border-none"></textarea>
+                        <button type="submit" class="w-full bg-slate-900 text-white font-bold py-5 rounded-2xl shadow-lg active:scale-95 transition-all">SINCRONIZAR AHORA</button>
+                    </form>
                 </div>
+            </section>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" id="mov-ub-ant" placeholder="Ubic. Anterior" class="w-full p-4 rounded-xl border shadow-sm">
-                    <input type="text" id="mov-ub-nue" placeholder="Ubic. Nueva" class="w-full p-4 rounded-xl border shadow-sm">
-                </div>
-
-                <textarea id="mov-com" placeholder="Comentario" class="w-full p-4 rounded-xl border shadow-sm"></textarea>
-                
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700">
-                    GUARDAR MOVIMIENTO
-                </button>
-            </form>
-        </div>
+        </main>
     </div>
 
-    <!-- Navegación Inferior (Estilo App) -->
-    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2 pb-6">
-        <button onclick="switchTab('inventory')" id="tab-inv" class="flex flex-col items-center p-2 text-blue-600 tab-active">
-            <i class="fas fa-boxes text-xl"></i>
-            <span class="text-[10px] mt-1">Inventario</span>
+    <!-- NAVBAR INFERIOR -->
+    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 glass border-t border-gray-100 flex justify-around p-3 z-40">
+        <button onclick="switchTab('inventory')" id="tab-inv" class="flex flex-col items-center p-2 tab-active transition-all">
+            <i class="fas fa-search-barcode text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase">Buscar</span>
         </button>
-        <button onclick="switchTab('movements')" id="tab-mov" class="flex flex-col items-center p-2 text-gray-400">
-            <i class="fas fa-exchange-alt text-xl"></i>
-            <span class="text-[10px] mt-1">Movimientos</span>
+        <button onclick="switchTab('dashboard')" id="tab-dash" class="flex flex-col items-center p-2 text-slate-400">
+            <i class="fas fa-chart-pie text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase">Alertas</span>
         </button>
-        <button onclick="logout()" class="flex flex-col items-center p-2 text-gray-400">
-            <i class="fas fa-sign-out-alt text-xl"></i>
-            <span class="text-[10px] mt-1">Salir</span>
+        <button onclick="switchTab('movements')" id="tab-mov" class="flex flex-col items-center p-2 text-slate-400">
+            <i class="fas fa-plus-circle text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase">Mover</span>
         </button>
     </nav>
 
     <script>
-        // DATOS DE EJEMPLO (Se pueden expandir o cargar de un JSON/Base de datos)
-        const db_productos = [
-            {
-                codigo: "EQBL02935P",
-                descripcion: "ROLLO TTG COLOR BL 1 1/2 x 0 13/16 FILA 2 CORE 3",
-                stock_sis: 35,
-                stock_bod: 35,
-                dif: 0,
-                ub: "A-1",
-                lote: "12345",
-                com: "EN REVISION"
-            }
-        ];
-
+        const APP_URL = 'ESCRIBE_AQUI_TU_URL_DE_APPS_SCRIPT';
+        let DB = { eq: [], inv: [] };
         let currentUser = "";
-        let movimientos = JSON.parse(localStorage.getItem('movimientos_bodega')) || [];
+
+        // CARGAR DATOS DE GOOGLE SHEETS
+        async function loadData() {
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const response = await fetch(`${APP_URL}?action=getData`);
+                const data = await response.json();
+                DB.eq = data.eq;
+                DB.inv = data.inv;
+                renderDashboard();
+                document.getElementById('loader').style.display = 'none';
+            } catch (error) {
+                console.error("Error cargando datos:", error);
+                alert("Error de conexión con la base de datos.");
+            }
+        }
 
         function login(user) {
             currentUser = user;
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('bottom-nav').classList.remove('hidden');
-            document.getElementById('user-display').innerText = "Operador: " + user;
+            document.getElementById('user-display').innerText = `Operario: ${user}`;
+            loadData();
         }
 
-        function logout() {
-            location.reload();
-        }
-
-        function switchTab(tab) {
-            const inv = document.getElementById('view-inventory');
-            const mov = document.getElementById('view-movements');
-            const tInv = document.getElementById('tab-inv');
-            const tMov = document.getElementById('tab-mov');
-
-            if(tab === 'inventory') {
-                inv.classList.remove('hidden');
-                mov.classList.add('hidden');
-                tInv.classList.add('tab-active');
-                tMov.classList.remove('tab-active');
-            } else {
-                inv.classList.add('hidden');
-                mov.classList.remove('hidden');
-                tMov.classList.add('tab-active');
-                tInv.classList.remove('tab-active');
-            }
-        }
-
-        function searchProduct() {
-            const code = document.getElementById('search-input').value.toUpperCase();
-            const product = db_productos.find(p => p.codigo === code);
-            const resCard = document.getElementById('product-result');
-
+        // AUTO-RELLENAR AL ESCRIBIR CÓDIGO
+        function fillFields(code) {
+            const product = DB.eq.find(r => r[0] === code.toUpperCase());
             if(product) {
-                resCard.classList.remove('hidden');
-                document.getElementById('res-codigo').innerText = product.codigo;
-                document.getElementById('res-descripcion').innerText = product.descripcion;
-                document.getElementById('res-stock-sis').innerText = product.stock_sis;
-                document.getElementById('res-stock-bod').innerText = product.stock_bod;
-                document.getElementById('res-dif').innerText = product.dif;
-                document.getElementById('res-ubicacion').innerText = product.ub;
-                document.getElementById('res-lote').innerText = product.lote;
-                document.getElementById('res-comentario').innerText = product.com;
-            } else {
-                alert("Producto no encontrado");
-                resCard.classList.add('hidden');
+                document.getElementById('mov-desc').value = product[1]; // Columna B de EQ
             }
         }
 
-        // GUARDAR MOVIMIENTO
-        document.getElementById('movement-form').onsubmit = function(e) {
-            e.preventDefault();
+        // BÚSQUEDA
+        function autoSuggest() {
+            const query = document.getElementById('search-input').value.toUpperCase();
+            const invRow = DB.inv.find(r => r[0] === query); // Hoja inventario
+            const eqRow = DB.eq.find(r => r[0] === query);   // Hoja EQ
+
+            if(invRow) {
+                document.getElementById('product-result').classList.remove('hidden');
+                document.getElementById('res-codigo').innerText = invRow[0];
+                document.getElementById('res-descripcion').innerText = invRow[1];
+                document.getElementById('res-stock-sis').innerText = invRow[3];
+                document.getElementById('res-stock-bod').innerText = invRow[4];
+                document.getElementById('res-dif').innerText = invRow[5];
+                document.getElementById('res-ubicacion').innerText = invRow[6];
+                document.getElementById('res-lote').innerText = "LOTE: " + (invRow[7] || "N/A");
+                
+                const difBox = document.getElementById('res-dif-box');
+                difBox.style.background = invRow[5] != 0 ? '#fee2e2' : '#f0fdf4';
+                difBox.style.color = invRow[5] != 0 ? '#ef4444' : '#22c55e';
+            }
+        }
+
+        // DASHBOARD DE DESCUADRADOS
+        function renderDashboard() {
+            const list = document.getElementById('dashboard-list');
+            list.innerHTML = "";
+            // Filtramos la hoja inventario donde columna F (index 5) != 0
+            const descuadrados = DB.inv.filter((r, index) => index > 0 && r[5] != 0);
+
+            if(descuadrados.length === 0) {
+                list.innerHTML = "<p class='text-center text-green-500 font-bold p-10'>? Todo cuadrado</p>";
+                return;
+            }
+
+            descuadrados.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "card-descuadre glass p-4 rounded-2xl shadow-sm flex justify-between items-center";
+                div.innerHTML = `
+                    <div>
+                        <p class="text-sm font-black text-slate-800">${item[0]}</p>
+                        <p class="text-[10px] text-gray-500 truncate w-40">${item[1]}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-red-500 font-bold">DIF: ${item[5]}</p>
+                        <p class="text-[9px] text-gray-400">UBIC: ${item[6]}</p>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // CAMBIAR PESTAÑAS
+        function switchTab(tab) {
+            const tabs = ['view-inventory', 'view-dashboard', 'view-movements'];
+            tabs.forEach(t => document.getElementById(t).classList.add('hidden'));
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
             
-            const nuevoMov = {
-                fecha: new Date().toLocaleString(),
+            // Estilo iconos
+            const icons = ['tab-inv', 'tab-dash', 'tab-mov'];
+            icons.forEach(i => document.getElementById(i).classList.remove('tab-active', 'text-slate-400'));
+            document.getElementById(`tab-${tab === 'inventory' ? 'inv' : tab === 'dashboard' ? 'dash' : 'mov'}`).classList.add('tab-active');
+        }
+
+        // GUARDAR EN GOOGLE SHEETS
+        document.getElementById('movement-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "PROCESANDO...";
+            btn.disabled = true;
+
+            const payload = {
                 usuario: currentUser,
                 codigo: document.getElementById('mov-codigo').value,
                 descripcion: document.getElementById('mov-desc').value,
                 tipo: document.getElementById('mov-tipo').value,
                 cantidad: document.getElementById('mov-cant').value,
-                ub_ant: document.getElementById('mov-ub-ant').value,
-                ub_nue: document.getElementById('mov-ub-nue').value,
                 lote: document.getElementById('mov-lote').value,
                 comentario: document.getElementById('mov-com').value
             };
 
-            movimientos.push(nuevoMov);
-            localStorage.setItem('movimientos_bodega', JSON.stringify(movimientos));
-            
-            alert("? Movimiento Guardado con éxito");
-            this.reset();
-            switchTab('inventory');
+            try {
+                await fetch(APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                alert("Sincronizado con Google Sheets correctamente");
+                e.target.reset();
+                loadData(); // Recargar datos para el dashboard
+            } catch (e) {
+                alert("Error al guardar");
+            } finally {
+                btn.innerText = "SINCRONIZAR AHORA";
+                btn.disabled = false;
+            }
         };
     </script>
 </body>
